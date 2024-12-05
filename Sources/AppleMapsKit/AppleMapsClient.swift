@@ -9,8 +9,17 @@ public struct AppleMapsClient: Sendable {
     static let apiServer = "https://maps-api.apple.com"
     private let httpClient: HTTPClient
     private let authClient: AuthClient
+    private let requestConfiguration: RequestConfiguration
 
     private let decoder = JSONDecoder()
+
+    public struct RequestConfiguration: Sendable {
+        public var timeout: TimeInterval?
+
+        public init(timeout: TimeInterval? = nil) {
+            self.timeout = timeout
+        }
+    }
 
     /// Initializes a new `AppleMapsClient` instance.
     ///
@@ -21,7 +30,7 @@ public struct AppleMapsClient: Sendable {
     ///   - teamID: A 10-character Team ID obtained from your Apple Developer account.
     ///   - keyID: A 10-character key identifier that provides the ID of the private key that you obtain from your Apple Developer account.
     ///   - key: A MapKit JS private key.
-    public init(httpClient: HTTPClient, teamID: String, keyID: String, key: String) {
+    public init(httpClient: HTTPClient, requestConfiguration: RequestConfiguration = RequestConfiguration(), teamID: String, keyID: String, key: String) {
         self.httpClient = httpClient
         self.authClient = AuthClient(
             httpClient: httpClient,
@@ -29,6 +38,7 @@ public struct AppleMapsClient: Sendable {
             keyID: keyID,
             key: key
         )
+        self.requestConfiguration = requestConfiguration
     }
 
     /// Returns the latitude and longitude of the address you specify.
@@ -543,12 +553,21 @@ extension AppleMapsClient {
         var request = HTTPClientRequest(url: url.absoluteString)
         request.headers = headers
 
-        let response = try await httpClient.execute(request, timeout: .seconds(30))
+        let response = try await httpClient.execute(request, timeout: requestConfiguration.resolvedTimeout)
 
         if response.status == .ok {
             return try await response.body.collect(upTo: 1024 * 1024)
         } else {
             throw try await decoder.decode(ErrorResponse.self, from: response.body.collect(upTo: 1024 * 1024))
         }
+    }
+}
+
+private extension AppleMapsClient.RequestConfiguration {
+    var resolvedTimeout: TimeAmount {
+        if let timeout {
+            return .seconds(Int64(timeout))
+        }
+        return .seconds(60)
     }
 }
