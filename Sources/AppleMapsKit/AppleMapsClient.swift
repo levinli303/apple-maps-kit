@@ -21,7 +21,7 @@ public struct AppleMapsClient: Sendable {
         }
     }
 
-    /// Initializes a new `AppleMapsClient` instance.
+    /// Initializes a new ``AppleMapsClient`` instance.
     ///
     /// > Note: The Maps access token is valid for 30 minutes.
     ///
@@ -63,6 +63,7 @@ public struct AppleMapsClient: Sendable {
         userLocation: (latitude: Double, longitude: Double)? = nil
     ) async throws -> [Place] {
         var url = URL(string: "\(Self.apiServer)/v1/geocode")!
+
         var queries: [URLQueryItem] = [URLQueryItem(name: "q", value: address)]
         if let limitToCountries {
             queries.append(URLQueryItem(name: "limitToCountries", value: limitToCountries.joined(separator: ",")))
@@ -79,8 +80,10 @@ public struct AppleMapsClient: Sendable {
         if let userLocation {
             queries.append(URLQueryItem(name: "userLocation", value: "\(userLocation.latitude),\(userLocation.longitude)"))
         }
+
         url.append(queryItems: queries)
-        return try await decoder.decode(PlaceResults.self, from: httpGet(url: url)).results ?? []
+
+        return try await self.decoder.decode(PlaceResults.self, from: self.httpGet(url: url)).results ?? []
     }
 
     /// Returns an array of addresses present at the coordinates you provide.
@@ -93,12 +96,15 @@ public struct AppleMapsClient: Sendable {
     /// - Returns: An array of one or more ``Place`` objects.
     public func reverseGeocode(latitude: Double, longitude: Double, lang: String? = nil) async throws -> [Place] {
         var url = URL(string: "\(Self.apiServer)/v1/reverseGeocode")!
+
         var queries: [URLQueryItem] = [URLQueryItem(name: "loc", value: "\(latitude),\(longitude)")]
         if let lang {
             queries.append(URLQueryItem(name: "lang", value: lang))
         }
+
         url.append(queryItems: queries)
-        return try await decoder.decode(PlaceResults.self, from: httpGet(url: url)).results ?? []
+
+        return try await self.decoder.decode(PlaceResults.self, from: self.httpGet(url: url)).results ?? []
     }
 
     /// Find places by name or by specific search criteria.
@@ -123,7 +129,7 @@ public struct AppleMapsClient: Sendable {
     ///
     /// - Returns: Returns a ``MapRegion`` that describes a region that encloses the results, and an array of ``SearchResponse`` objects that describes the results of the search.
     public func search(
-        for place: String,
+        for place: String?,
         excludePoiCategories: [PoiCategory]? = nil,
         includePoiCategories: [PoiCategory]? = nil,
         limitToCountries: [String]? = nil,
@@ -139,7 +145,11 @@ public struct AppleMapsClient: Sendable {
         excludeAddressCategories: [AddressCategory]? = nil
     ) async throws -> SearchResponse {
         var url = URL(string: "\(Self.apiServer)/v1/search")!
-        var queries: [URLQueryItem] = [URLQueryItem(name: "q", value: place)]
+
+        var queries: [URLQueryItem] = []
+        if let place {
+            queries.append(URLQueryItem(name: "q", value: place))
+        }
         if let excludePoiCategories {
             queries.append(
                 URLQueryItem(name: "excludePoiCategories", value: excludePoiCategories.map { $0.rawValue }.joined(separator: ","))
@@ -198,8 +208,10 @@ public struct AppleMapsClient: Sendable {
                 URLQueryItem(name: "excludeAddressCategories", value: excludeAddressCategories.map { $0.rawValue }.joined(separator: ","))
             )
         }
+
         url.append(queryItems: queries)
-        return try await decoder.decode(SearchResponse.self, from: httpGet(url: url))
+
+        return try await self.decoder.decode(SearchResponse.self, from: self.httpGet(url: url))
     }
 
     /// Find results that you can use to autocomplete searches.
@@ -236,6 +248,7 @@ public struct AppleMapsClient: Sendable {
         excludeAddressCategories: [AddressCategory]? = nil
     ) async throws -> [AutocompleteResult] {
         var url = URL(string: "\(Self.apiServer)/v1/searchAutocomplete")!
+
         var queries: [URLQueryItem] = [URLQueryItem(name: "q", value: place)]
         if let excludePoiCategories {
             queries.append(
@@ -278,8 +291,10 @@ public struct AppleMapsClient: Sendable {
                 URLQueryItem(name: "excludeAddressCategories", value: excludeAddressCategories.map { $0.rawValue }.joined(separator: ","))
             )
         }
+
         url.append(queryItems: queries)
-        return try await decoder.decode(SearchAutocompleteResponse.self, from: httpGet(url: url)).results ?? []
+
+        return try await self.decoder.decode(SearchAutocompleteResponse.self, from: self.httpGet(url: url)).results ?? []
     }
 
     /// Find directions by specific criteria.
@@ -316,6 +331,7 @@ public struct AppleMapsClient: Sendable {
         userLocation: (latitude: Double, longitude: Double)? = nil
     ) async throws -> DirectionsResponse {
         var url = URL(string: "\(Self.apiServer)/v1/directions")!
+
         var queries: [URLQueryItem] = [
             URLQueryItem(name: "origin", value: origin),
             URLQueryItem(name: "destination", value: destination),
@@ -373,8 +389,10 @@ public struct AppleMapsClient: Sendable {
         if let userLocation {
             queries.append(URLQueryItem(name: "userLocation", value: "\(userLocation.latitude),\(userLocation.longitude)"))
         }
+
         url.append(queryItems: queries)
-        return try await decoder.decode(DirectionsResponse.self, from: httpGet(url: url))
+
+        return try await self.decoder.decode(DirectionsResponse.self, from: self.httpGet(url: url))
     }
 
     /// Returns the estimated time of arrival (ETA) and distance between starting and ending locations.
@@ -397,6 +415,7 @@ public struct AppleMapsClient: Sendable {
         arrivalDate: Date? = nil
     ) async throws -> [Eta] {
         var url = URL(string: "\(Self.apiServer)/v1/etas")!
+
         var queries: [URLQueryItem] = [
             URLQueryItem(name: "origin", value: "\(origin.latitude),\(origin.longitude)"),
             URLQueryItem(
@@ -439,8 +458,10 @@ public struct AppleMapsClient: Sendable {
                 )
             )
         }
+
         url.append(queryItems: queries)
-        return try await decoder.decode(EtaResponse.self, from: httpGet(url: url)).etas ?? []
+
+        return try await self.decoder.decode(EtaResponse.self, from: self.httpGet(url: url)).etas ?? []
     }
 
     /// Returns the estimated time of arrival (ETA) and distance between starting and ending locations.
@@ -464,11 +485,11 @@ public struct AppleMapsClient: Sendable {
     ) async throws -> [Eta] {
         var destinationCoordinates: [(latitude: Double, longitude: Double)] = []
         for destination in destinations {
-            try await destinationCoordinates.append(getCoordinate(from: destination))
+            try await destinationCoordinates.append(self.getCoordinate(from: destination))
         }
 
-        return try await eta(
-            from: getCoordinate(from: origin),
+        return try await self.eta(
+            from: self.getCoordinate(from: origin),
             to: destinationCoordinates,
             transportType: transportType,
             departureDate: departureDate,
@@ -484,13 +505,15 @@ public struct AppleMapsClient: Sendable {
     ///
     /// - Returns: A tuple representing coordinate.
     private func getCoordinate(from address: String) async throws -> (latitude: Double, longitude: Double) {
-        let places = try await geocode(address: address)
+        let places = try await self.geocode(address: address)
+
         guard let coordinate = places.first?.coordinate,
             let latitude = coordinate.latitude,
             let longitude = coordinate.longitude
         else {
             throw AppleMapsKitError.noPlacesFound
         }
+
         return (latitude, longitude)
     }
 
@@ -506,7 +529,8 @@ public struct AppleMapsClient: Sendable {
         if let lang {
             url.append(queryItems: [URLQueryItem(name: "lang", value: lang)])
         }
-        return try await decoder.decode(Place.self, from: httpGet(url: url))
+
+        return try await self.decoder.decode(Place.self, from: self.httpGet(url: url))
     }
 
     /// Obtain a set of ``Place`` objects for a given set of Place IDs.
@@ -518,12 +542,15 @@ public struct AppleMapsClient: Sendable {
     /// - Returns: A list of ``PlacesResponse`` results.
     public func places(ids: [String], lang: String? = nil) async throws -> PlacesResponse {
         var url = URL(string: "\(Self.apiServer)/v1/place")!
+
         var queries: [URLQueryItem] = [URLQueryItem(name: "ids", value: ids.joined(separator: ","))]
         if let lang {
             queries.append(URLQueryItem(name: "lang", value: lang))
         }
+
         url.append(queryItems: queries)
-        return try await decoder.decode(PlacesResponse.self, from: httpGet(url: url))
+
+        return try await self.decoder.decode(PlacesResponse.self, from: self.httpGet(url: url))
     }
 
     /// Get a list of alternate ``Place`` IDs given one or more Place IDs.
@@ -534,7 +561,8 @@ public struct AppleMapsClient: Sendable {
     public func alternatePlaceIDs(ids: [String]) async throws -> AlternateIDsResponse {
         var url = URL(string: "\(Self.apiServer)/v1/place/alternateIds")!
         url.append(queryItems: [URLQueryItem(name: "ids", value: ids.joined(separator: ","))])
-        return try await decoder.decode(AlternateIDsResponse.self, from: httpGet(url: url))
+
+        return try await self.decoder.decode(AlternateIDsResponse.self, from: self.httpGet(url: url))
     }
 }
 
@@ -548,17 +576,17 @@ extension AppleMapsClient {
     /// - Throws: Error response object.
     private func httpGet(url: URL) async throws -> ByteBuffer {
         var headers = HTTPHeaders()
-        headers.add(name: "Authorization", value: "Bearer \(try await authClient.accessToken)")
+        headers.add(name: "Authorization", value: "Bearer \(try await self.authClient.accessToken)")
 
         var request = HTTPClientRequest(url: url.absoluteString)
         request.headers = headers
 
-        let response = try await httpClient.execute(request, timeout: requestConfiguration.resolvedTimeout)
+        let response = try await self.httpClient.execute(request, timeout: requestConfiguration.resolvedTimeout))
 
         if response.status == .ok {
             return try await response.body.collect(upTo: 1024 * 1024)
         } else {
-            throw try await decoder.decode(ErrorResponse.self, from: response.body.collect(upTo: 1024 * 1024))
+            throw try await self.decoder.decode(ErrorResponseJSON.self, from: response.body.collect(upTo: 1024 * 1024)).error
         }
     }
 }
