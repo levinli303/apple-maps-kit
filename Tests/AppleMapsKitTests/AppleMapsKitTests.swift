@@ -69,7 +69,7 @@ struct AppleMapsKitTests {
     func search(searchLocation: (latitude: Double, longitude: Double)?, searchRegion: MapRegion?) async throws {
         try await withKnownIssue {
             let searchResponse = try await client.search(
-                for: "eiffel tower",
+                for: "golden gate bridge",
                 excludePoiCategories: [.airport],
                 includePoiCategories: [.landmark],
                 limitToCountries: ["US", "CA"],
@@ -235,7 +235,7 @@ struct AppleMapsKitTests {
     @Test("Place") func place() async throws {
         try await withKnownIssue {
             let place = try await client.place(id: "I7C250D2CDCB364A", lang: "en-US")
-            #expect(place != nil)
+            #expect(place.countryCode != nil)
         } when: {
             credentialsAreInvalid
         }
