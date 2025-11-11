@@ -8,7 +8,7 @@ import Testing
 struct AppleMapsKitTests {
     var client: AppleMapsClient
     // TODO: Replace with `false` when you have valid credentials.
-    var credentialsAreInvalid = true
+    let credentialsAreInvalid = true
 
     init() async throws {
         // TODO: Replace the following values with valid ones.
@@ -69,7 +69,7 @@ struct AppleMapsKitTests {
     func search(searchLocation: (latitude: Double, longitude: Double)?, searchRegion: MapRegion?) async throws {
         try await withKnownIssue {
             let searchResponse = try await client.search(
-                for: "eiffel tower",
+                for: "golden gate bridge",
                 excludePoiCategories: [.airport],
                 includePoiCategories: [.landmark],
                 limitToCountries: ["US", "CA"],
@@ -91,28 +91,33 @@ struct AppleMapsKitTests {
     }
 
     @Test("Search with invalid Result Type") func searchWithInvalidResultType() async throws {
-        await #expect {
+        await #expect(throws: AppleMapsKitError.invalidSearchResultType) {
             try await client.search(
                 for: "eiffel tower",
                 resultTypeFilter: [.pointOfInterest, .physicalFeature, .poi, .address, .query]
             )
-        } throws: { error in
-            guard let error = error as? AppleMapsKitError else { return false }
-            return error.errorType.base == .invalidSearchResultType
         }
     }
 
     @Test("Search with Page Token") func searchWithPageToken() async throws {
-        await withKnownIssue {
+        try await withKnownIssue {
             let searchResponse = try await client.search(
                 for: "eiffel tower",
-                resultTypeFilter: [.pointOfInterest, .physicalFeature, .poi, .address],
-                lang: "en-US",
-                enablePagination: true,
-                pageToken: "test"
+                enablePagination: true
             )
             let results = try #require(searchResponse.results)
             #expect(!results.isEmpty)
+
+            let nextPageToken = try #require(searchResponse.paginationInfo?.nextPageToken)
+
+            let nextSearchResponse = try await client.search(
+                for: nil,
+                pageToken: nextPageToken
+            )
+            let nextResults = try #require(nextSearchResponse.results)
+            #expect(!nextResults.isEmpty)
+        } when: {
+            credentialsAreInvalid
         }
     }
 
@@ -230,7 +235,7 @@ struct AppleMapsKitTests {
     @Test("Place") func place() async throws {
         try await withKnownIssue {
             let place = try await client.place(id: "I7C250D2CDCB364A", lang: "en-US")
-            #expect(place != nil)
+            #expect(place.countryCode != nil)
         } when: {
             credentialsAreInvalid
         }
